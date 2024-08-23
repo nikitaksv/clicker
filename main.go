@@ -24,7 +24,7 @@ import (
 )
 
 func init() {
-	hook.Keycode["f11"] = 77
+	hook.Keycode["f11"] = 87
 	hook.Keycode["f12"] = 88
 }
 
