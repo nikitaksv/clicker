@@ -107,6 +107,7 @@ func main() {
 					for i := 0; i < cfg.repeat; i++ {
 						for _, cmd := range cmds {
 							cmd.exec(cfg.wait)
+							robotgo.MilliSleep(cfg.wait)
 						}
 					}
 				})
