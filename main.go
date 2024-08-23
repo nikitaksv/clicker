@@ -28,23 +28,7 @@ func init() {
 	hook.Keycode["f12"] = 88
 }
 
-/*
-{"id":4,"When":"2024-08-23T15:30:22.7354134+03:00","mask":0,"reserved":0,"keycode":68,"rawcode":121,"keychar":65535,"button":0,"clicks":0,"x":0,"y":0,"amount":0,"rotation":0,"direction":0}
-{"id":5,"When":"2024-08-23T15:30:22.7855361+03:00","mask":0,"reserved":0,"keycode":68,"rawcode":121,"keychar":65535,"button":0,"clicks":0,"x":0,"y":0,"amount":0,"rotation":0,"direction":0}
-{"id":4,"When":"2024-08-23T15:30:23.0368941+03:00","mask":0,"reserved":0,"keycode":87,"rawcode":122,"keychar":65535,"button":0,"clicks":0,"x":0,"y":0,"amount":0,"rotation":0,"direction":0}
-{"id":5,"When":"2024-08-23T15:30:23.0873316+03:00","mask":0,"reserved":0,"keycode":87,"rawcode":122,"keychar":65535,"button":0,"clicks":0,"x":0,"y":0,"amount":0,"rotation":0,"direction":0}
-{"id":4,"When":"2024-08-23T15:30:24.1420402+03:00","mask":0,"reserved":0,"keycode":88,"rawcode":123,"keychar":65535,"button":0,"clicks":0,"x":0,"y":0,"amount":0,"rotation":0,"direction":0}
-{"id":5,"When":"2024-08-23T15:30:24.2428318+03:00","mask":0,"reserved":0,"keycode":88,"rawcode":123,"keychar":65535,"button":0,"clicks":0,"x":0,"y":0,"amount":0,"rotation":0,"direction":0}
-*/
 func main() {
-	s := hook.Start()
-
-	fmt.Println("--- Нажмите ctrl + shift + q для выхода из скрипта ---")
-	hook.Register(hook.KeyDown, []string{"ctrl", "shift", "q"}, func(e hook.Event) {
-		log.Println("выход")
-		hook.End()
-	})
-
 	app := &cli.App{
 		Name: "clicker",
 		Args: true,
@@ -96,6 +80,12 @@ func main() {
 				return err
 			}
 
+			fmt.Println("--- Нажмите ctrl + shift + q для выхода из скрипта ---")
+			hook.Register(hook.KeyDown, []string{"ctrl", "shift", "q"}, func(e hook.Event) {
+				log.Println("выход")
+				hook.End()
+			})
+
 			fmt.Printf("--- Нажмите %s для запуска скрипта ---\n", strings.Join(cfg.keys_start, " + "))
 			once := &atomic.Bool{}
 			for _, op := range []uint8{hook.KeyDown, hook.KeyHold, hook.KeyUp} {
@@ -113,6 +103,9 @@ func main() {
 				})
 			}
 
+			s := hook.Start()
+			<-hook.Process(s)
+
 			return nil
 		},
 	}
@@ -120,7 +113,6 @@ func main() {
 	if err := app.Run(os.Args); err != nil {
 		log.Println(err)
 	}
-	<-hook.Process(s)
 }
 
 func parse_cmd(str string) ([]*command, error) {
