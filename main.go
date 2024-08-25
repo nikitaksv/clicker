@@ -16,6 +16,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -90,20 +91,30 @@ func main() {
 			})
 
 			fmt.Printf("--- Нажмите %s для запуска скрипта ---\n", strings.Join(cfg.keys_start, " + "))
+			wg := &sync.WaitGroup{}
+			defer wg.Wait()
 			waitDur := time.Millisecond * time.Duration(cfg.wait)
+			counter := &atomic.Int32{}
 			once := &atomic.Bool{}
-			for _, op := range []uint8{hook.KeyDown, hook.KeyHold, hook.KeyUp} {
+			for _, op := range []uint8{hook.KeyDown, hook.KeyHold} {
 				hook.Register(op, cfg.keys_start, func(e hook.Event) {
-					if !once.CompareAndSwap(false, true) {
-						return
-					}
-					defer once.Store(false)
-					for i := 0; i < cfg.repeat; i++ {
-						for _, cmd := range cmds {
-							fmt.Println(cmd.x, cmd.y)
-							cmd.exec(waitDur)
+					wg.Add(1)
+					go func(e hook.Event) {
+						defer wg.Done()
+						counter.Add(1)
+						c := counter.Load()
+						if once.CompareAndSwap(false, true) {
+							fmt.Println(c, "команда запущена")
+							defer once.Store(false)
+							for i := 0; i < cfg.repeat; i++ {
+								for _, cmd := range cmds {
+									fmt.Printf(" > %dx%d:%d", cmd.x, cmd.y, cmd.t)
+									cmd.exec(waitDur)
+								}
+							}
+							fmt.Printf("\n%d команда выполнена\n\n", c)
 						}
-					}
+					}(e)
 				})
 			}
 
