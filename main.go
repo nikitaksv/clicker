@@ -50,7 +50,7 @@ func main() {
 			&cli.IntFlag{
 				Name:    "repeat",
 				Aliases: []string{"r"},
-				Usage:   "сколько повторений команды требуется при запуске скрипта",
+				Usage:   "сколько запусков команды требуется при вызове скрипта",
 				Value:   1,
 			},
 			&cli.IntFlag{
@@ -100,6 +100,7 @@ func main() {
 					defer once.Store(false)
 					for i := 0; i < cfg.repeat; i++ {
 						for _, cmd := range cmds {
+							fmt.Println(cmd.x, cmd.y)
 							cmd.exec(waitDur)
 						}
 					}
@@ -120,9 +121,13 @@ func main() {
 
 func parse_cmd(str string) ([]*command, error) {
 	parts := strings.Split(strings.TrimSpace(str), ";")
-	cmds := make([]*command, len(parts))
-	for i, part := range parts {
-		params := strings.Split(strings.TrimSpace(part), ":")
+	cmds := make([]*command, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		params := strings.Split(part, ":")
 		cmd := &command{
 			x: sti(get_param(params, 0)),
 			y: sti(get_param(params, 1)),
@@ -131,7 +136,7 @@ func parse_cmd(str string) ([]*command, error) {
 		if err := cmd.validate(); err != nil {
 			return nil, fmt.Errorf("команда \"%s\" неверная: %w", part, err)
 		}
-		cmds[i] = cmd
+		cmds = append(cmds, cmd)
 	}
 	return cmds, nil
 }
