@@ -17,6 +17,7 @@ import (
 	"strconv"
 	"strings"
 	"sync/atomic"
+	"time"
 
 	"github.com/go-vgo/robotgo"
 	hook "github.com/robotn/gohook"
@@ -71,6 +72,7 @@ func main() {
 				cmd_str:    ctx.Args().First(),
 				keys_start: ctx.StringSlice("key"),
 				repeat:     ctx.Int("repeat"),
+				wait:       ctx.Int("wait"),
 			}
 			if err := cfg.validate(); err != nil {
 				return fmt.Errorf("неверная конфигурация: %w", err)
@@ -79,6 +81,7 @@ func main() {
 			if err != nil {
 				return err
 			}
+			fmt.Printf("Конфигурация скрипта: %s\n", cfg)
 
 			fmt.Println("--- Нажмите ctrl + shift + q для выхода из скрипта ---")
 			hook.Register(hook.KeyDown, []string{"ctrl", "shift", "q"}, func(e hook.Event) {
@@ -87,6 +90,7 @@ func main() {
 			})
 
 			fmt.Printf("--- Нажмите %s для запуска скрипта ---\n", strings.Join(cfg.keys_start, " + "))
+			waitDur := time.Millisecond * time.Duration(cfg.wait)
 			once := &atomic.Bool{}
 			for _, op := range []uint8{hook.KeyDown, hook.KeyHold, hook.KeyUp} {
 				hook.Register(op, cfg.keys_start, func(e hook.Event) {
@@ -96,8 +100,7 @@ func main() {
 					defer once.Store(false)
 					for i := 0; i < cfg.repeat; i++ {
 						for _, cmd := range cmds {
-							cmd.exec(cfg.wait)
-							robotgo.MilliSleep(cfg.wait)
+							cmd.exec(waitDur)
 						}
 					}
 				})
@@ -168,9 +171,10 @@ func (c *command) validate() error {
 	return nil
 }
 
-func (c *command) exec(wait int) {
+func (c *command) exec(wait time.Duration) {
+	time.Sleep(wait)
 	robotgo.Move(c.x, c.y)
-	robotgo.MilliSleep(wait)
+	time.Sleep(wait)
 	robotgo.Click("left", c.t == 1)
 }
 
@@ -179,6 +183,16 @@ type cfg struct {
 	keys_start []string
 	repeat     int
 	wait       int
+}
+
+func (c *cfg) String() string {
+	return fmt.Sprintf(
+		"cmd_srt=\"%s\"; keys_start=%q; repeat=%d; wait=%dms",
+		c.cmd_str,
+		c.keys_start,
+		c.repeat,
+		c.wait,
+	)
 }
 
 var rex = regexp.MustCompile(`(?m)(\d+:\d+:[0-1]+;?)`)
